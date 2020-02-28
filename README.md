@@ -63,7 +63,46 @@ Main tasks:
 and grant privilages on the database: here mediawiki instance name, user wikiuser
 
 
-## Playbooks' tasks list
+## Playbooks
+
+### Roles summary for AWS-mediawiki playbook
+
+#### common role
+
+Responsible to adjust the environment, for example, by installing python or pip or python-openssl.
+
+#### AWS role
+
+Main role. First create some local subdirectories to set aws auth configs and then other subdirs to save some transient configuration like SSH settings and database endpoint name.
+
+The tasks of main interest are the EC2, RDS and CFN creation. CFN is done by a handler after EC2 creation. The last tasks collect many relevant data (facts) and save them under facts.d subdirectory.
+
+### Roles summary for mediawiki playbook
+
+#### common role
+
+As in the former playbook. It is responsible to adjust the environment, for example, by installing python or pip or python-openssl.
+
+#### base role
+
+Its tasks shall install all packages as requisite to deploy a simple linux server, like nginx web server, php and its extensions. 
+
+Some of its tasks receive file, link, template definitions to deploy in proper place. 
+
+As with php, some INI files are changed according to the need. 
+
+The mediawiki source bundle is downloaded and unarchived (a tar ball) in the proper place (/var/www/html).
+
+At its final duties this role check the previous defined packages, if having the 'srv' key in its dictionary, and make sure the corresponding service is started, like 'nginx' and 'php7.2-fpm'.
+
+#### DB_adm role
+
+Create databases and grant privileges in DBMS servers. Here a MySQL RDS instance. 
+
+The endpoint was saved in facts.d/'instanceName'.rc by the former playbook: AWS-mediawiki after the RDS instance deployment. In this case: 'facts.d/mediawiki.rc', and it is 'sourced' by the shell script when invoked (mediawiki.sh).
+
+
+### Tasks list
 
 ```
 playbook: AWS-mediawiki.yml
@@ -123,3 +162,4 @@ playbook: mediawiki.yml
       DB_adm : Create MySql DBs on respective hosts --------------      TAGS: [create_databases, databases]
       DB_adm : Grant user privileges in MySql DBs ----------------      TAGS: [databases, grant_privileges]
 ```
+
