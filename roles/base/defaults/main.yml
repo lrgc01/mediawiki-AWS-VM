@@ -1,0 +1,72 @@
+---
+# Base example yml var file
+#
+# Our web server definitions
+#
+www_basedir             : "/var/www"
+www_htmldir             : "{{ www_basedir }}/html"
+www_username            : "www-data"
+web_service             : "nginx"                                       # will be used more than once later
+#
+# General package and service hash list
+#
+# If a packet has a service associate it should be listed with srv, state and enabled.
+# enabled and state defaults to true and started respectively.
+#dep_pkg_list :
+#   - { pkg : "{{ web_service }}" ,  srv : "{{ web_service }}" , state : "started" , enabled : true }
+#   - { pkg : "composer"}
+#   - { pkg : "git"}
+#
+# dir, file, template or link, depending on key values
+#
+# Will be used in template and file modules to create, delete and link.
+#
+# This dir_file_tmpl_list dict var will be used in 4 different tasks, one of 
+# each type: tmpl, dir, link and file.
+#
+# For template, the name will be appended to dest dir. If src exists it will use, otherwise, only name.j2.
+# For dir, the src doesn't make sense, neither name.
+# For link, src and dest are mandatory and will always have name appended to them.
+# Files may removed with absent.
+# If mode not present, it will default to 0644
+# Note that one line may be used to multiple goals as defined in types.
+dir_file_tmpl_list     :
+   - false
+#   - { types : [ "absent" ]       , dest : "/etc/nginx/sites-enabled/default" }
+#   - { types : [ "tmpl" ]         , dest : "~ubuntu"                    , name : "updatedns.sh" , mode : "0755" }
+#   - { types : [ "tmpl" ]         , dest : "/etc/nginx/snippets"        , name : "{{ domain2 }}-cert.conf"  , srv : "{{ web_service }}" }
+#   - { types : [ "tmpl" ]         , dest : "/etc/nginx/sites-available" , name : "{{ domain2 }}.conf"       , srv : "{{ web_service }}" }
+#   - { types : [ "link" ]         , src  : "/etc/nginx/sites-available" , dest : "/etc/nginx/sites-enabled" , name : "{{ domain2 }}.conf" }
+#   - { types : [ "dir" , "tmpl" ] , dest : "/etc/nginx/sites-available" , name : "Drupal-site" }
+#   - { types : [ "dir" , "tmpl" ] , dest : "/etc/nginx/snippets"        , name : "drupalcert.conf" }
+#   - { types : [ "dir" , "link" ] , src  : "/etc/nginx/sites-available" , dest : "/etc/nginx/sites-enabled" , name : "Drupal-site" }
+
+#
+# INI file configuration (php and others)
+#
+ini_file_list           :
+   - false
+#   - { path : "/etc/php/7.0/fpm/php.ini" , section : "PHP" , option : "allow_url_fopen" , value : "Off" }
+#   - { path : "/etc/php/7.0/fpm/php.ini" , section : "PHP" , option : "memory_limit"    , value : "64M" }
+#
+# Cron
+#
+cron_list:
+   - false
+#   - { name: "Update domain" , minute: "*/5" , job: "~ubuntu/updatedns.sh"  , user: "ubuntu" , state: "present" }
+
+# Define local and remote files both for upload (copy)
+# and download (fetch).
+# Action is mandatory (same idea of types in dir_file_tmpl_list above).
+# action = list of upload or download or both
+up_down_files_list :
+   - false
+#   -  { 
+#        local  : "{{ confdir }}/drupal.key",
+#        remote : "/etc/ssl/private/drupal.key" ,
+#        action : [ "upload", "download" ]
+#      }
+
+unarchive_list :
+   - false
+

@@ -1,0 +1,20 @@
+---
+gather_y_n      : true
+update_cache_y_n: true
+purge_y_n       : false
+autoremove_y_n  : false
+basedir         : "/home/luiz/compucorp"
+confdir         : "{{ basedir }}/conf.d"
+sshconf         : "{{ confdir }}/ssh_config"
+facts_out_dir   : "{{ basedir }}/facts.d"
+tmp_dir         : "/tmp"
+# Our choice web service
+web_service     : "nginx"
+#base_dep_pkg_list:
+#   - { pkg : "python-mysqldb"  }
+#   - { pkg : "python-openssl"  }
+
+apt_key_req_packs: [ 'apt-transport-https', 'ca-certificates', 'curl', 'gnupg2', 'software-properties-common' ]
+
+#listAptRepos:
+#   - false

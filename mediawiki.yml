@@ -1,0 +1,12 @@
+---
+- hosts: mediawiki
+  gather_facts: "{{ gather_y_n | default(true) }}"
+  become: true
+  remote_user: "{{ sudo_user | default('luiz') }}"
+  vars_files:
+    - vars_files/mediawiki.yml
+    - ../secret.yml
+  roles:
+    - common
+    - base
+    - DB_adm

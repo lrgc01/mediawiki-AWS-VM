@@ -1,0 +1,33 @@
+---
+# Care should be taken here because mysql_user ansible module 
+# does not support grants on FUNCTIONS and PROCEDURES. 
+# The workaround is to let append_privs=true so that 
+# such kind of priviledge added stay around.
+db_list                 :
+   -  { 
+        admuser      : "root" ,
+        admpass      : '' ,
+        host         : "localhost",
+        user         : "drupal" ,
+        pass         : "Drupal123" ,
+        dbname       : "drupal" ,
+        encoding     : "utf8mb4" ,
+        collation    : "utf8mb4_general_ci" ,
+        perms        : "drupal.*:SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,INDEX,ALTER,CREATE TEMPORARY TABLES/civicrm.*:SELECT",
+        append_privs : true ,
+        dbcreate     : false
+      }
+   -  { 
+        admuser      : "root" ,
+        admpass      : '' ,
+        host         : "localhost",
+        user         : "civicrm" ,
+        pass         : "Drupal123" ,
+        dbname       : "civicrm" ,
+        encoding     : "utf8mb4" ,
+        collation    : "utf8mb4_general_ci" ,
+        perms        : "civicrm.*:SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,INDEX,ALTER,CREATE TEMPORARY TABLES,LOCK TABLES,TRIGGER,CREATE ROUTINE,ALTER ROUTINE,REFERENCES",
+        append_privs : true ,
+        dbcreate     : false
+      }
+

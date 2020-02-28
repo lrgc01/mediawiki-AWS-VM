@@ -1,0 +1,4 @@
+---
+- import_tasks: 10-base.yml
+- import_tasks: 20-specific.yml
+- import_tasks: 90-last.yml

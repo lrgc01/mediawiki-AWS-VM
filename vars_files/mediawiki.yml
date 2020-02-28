@@ -1,0 +1,151 @@
+---
+#
+# Python role block variable definition
+#
+# boto* is for AWS so use in localhost only
+#pip_install_list        : [ "botocore" , "boto" , "boto3" ]
+
+#--- End of python role block
+
+#
+# General var definition block - to all roles
+#
+# Our web server definitions
+#
+www_basedir             : "/var/www"
+www_htmldir             : "{{ www_basedir }}/html"
+www_username            : "www-data"
+web_service             : "nginx"                                       # will be used more than once later
+
+# Mediawiki stugg
+MW_major_ver            : "1.34"
+MW_version              : "{{ MW_major_ver }}.0"
+mediawiki_base          : "mediawiki-{{ MW_version }}"
+mediawiki_root          : "{{ www_htmldir }}/{{ mediawiki_base }}"
+
+#
+# Will be used mainly with SSL certificate role
+#
+domain1                 : "lrgc01.uk.to"
+#
+
+# DB AWS instance used widely
+## obtained from a file named {{ db_name }}.rc on the FS of this playbook
+#db_instance_endpoint : "websiteinstance.ctxnidj2utoz.us-east-2.rds.amazonaws.com"
+
+# These below are used with remote ansible python script and once installed it's better not remove them
+base_dep_pkg_list:
+   - { pkg : "python3-openssl"  }
+   - { pkg : "python3-mysqldb"  }
+
+#--- End of General vars block
+
+#
+# Base role block variable definition
+#
+# General package and service hash list
+#
+# If a packet has a service associate it should be listed with srv, state and enabled.
+# enabled and state defaults to true and started respectively.
+dep_pkg_list :
+   - { pkg : "php"          }
+   - { pkg : "php-fpm"          ,  srv : "php7.2-fpm"        , state : "present" , srv_state: "started" , enabled : true }
+   - { pkg : "{{ web_service }}",  srv : "{{ web_service }}" , state : "present" , srv_state: "started" , enabled : true }
+   - { pkg : "mysql-client" }
+   - { pkg : "php-mysql"    }
+   - { pkg : "php-gd"       }
+   - { pkg : "php-json"     }
+   - { pkg : "php-curl"     }
+   - { pkg : "php-mbstring" }
+   - { pkg : "php-xml"      }
+   - { pkg : "php-apcu"     }
+   - { pkg : "php-intl"     }
+   - { pkg : "apache2" , state : "absent" }   # Seems that some php package installs apache2 as a recommended... Keep this 'absent' at the end
+
+#
+# dir, file, template or link, depending on key values
+#
+# Will be used in template and file modules to create, delete and link.
+#
+# This dir_file_tmpl_list dict var will be used in 4 different tasks, one of 
+# each type: tmpl, dir, link and file.
+#
+# If mode not present, it will default to 0644
+# Note that one line may be used to multiple goals as defined in types.
+# "dir" uses dest only
+# "link" uses src and dest: ln -s src dest (force=yes => ln -s -f)
+# "tmpl" uses name and dest: name.j2 -> dest/name
+# "absent" uses dest to remove files
+# srv is used to restart the service, if applicable, after a template is changed.
+dir_file_tmpl_list     :
+   - { 
+        state: "absent" , 
+        dest : "/etc/nginx/sites-enabled/default" ,
+     }
+   - { 
+        state: "tmpl" , 
+        dest : "/etc/nginx/sites-available" , 
+        name : "{{ domain1 }}.conf" , 
+        tmpl : "{{ domain1 }}.conf.j2" , 
+        srv  : "{{ web_service }}" ,
+        servername: "{{ domain1 }}" ,
+        documentroot: "{{ mediawiki_root }}" ,
+     }
+   - {  state : "link" , 
+        src   : "/etc/nginx/sites-available/{{ domain1 }}.conf" , 
+        dest  : "/etc/nginx/sites-enabled/{{ domain1 }}.conf" ,
+        force : true ,
+     }
+
+#
+# INI file configuration (php and others)
+#
+ini_file_list           :
+   - { path : "/etc/php/7.2/fpm/php.ini" , section : "PHP" , option : "allow_url_fopen" , value : "Off" }
+   - { path : "/etc/php/7.2/fpm/php.ini" , section : "PHP" , option : "memory_limit"    , value : "128M" }
+
+# List of tar/zip balls to unarchive to specific places.
+# Must define what it creates to be idempotent.
+unarchive_list  :
+   - {
+        src         : "https://releases.wikimedia.org/mediawiki/{{ MW_major_ver }}/mediawiki-{{ MW_version }}.tar.gz" ,
+        dest        : "{{ www_htmldir }}" ,
+        creates     : "{{ www_htmldir }}/{{ mediawiki_base }}/index.php" ,
+        owner       : "root" ,
+        group       : "root" ,
+        remote_src  : true
+     }
+
+#--- End of base role block
+
+#
+# DB_adm role block variable definition
+#
+# Care should be taken here because mysql_user ansible module 
+# does not support grants on FUNCTIONS and PROCEDURES. 
+# The workaround is to let append_privs=true so that 
+# such kind of priviledge added stay around.
+#
+# It seems that aws eds instance has some issue with 
+# mysql_user module, because it always shows no idempotency.
+#
+# 'db_list[*].dbcreate' switches one entry on/off
+# drop is used un role/uninst to remove a database
+db_list              :
+   -  {
+        dbcreate     : true ,
+        drop         : false ,
+        dbtype       : "mysql" ,
+        admuser      : "{{ db_user }}" ,
+        admpass      : "{{ db_pass }}" ,
+        host         : "{{ db_instance_endpoint }}",
+        user         : "{{ db_user }}" ,
+        pass         : "{{ db_pass }}" ,
+        dbname       : "{{ db_name }}" ,
+        encoding     : "utf8mb4" ,
+        collation    : "utf8mb4_general_ci" ,
+        perms        : "{{ db_name }}.*:ALL PRIVILEGES",
+        append_privs : true 
+      }
+
+#--- End of DB_adm role block

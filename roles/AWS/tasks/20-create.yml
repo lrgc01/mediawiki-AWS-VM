@@ -1,0 +1,133 @@
+---
+########################################################
+# Security groups and key pairs - almost aways mandatory
+- name: Create/Modify/Delete sec groups ---
+  ec2_group:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    state: "{{ item.state | default(omit) }}"
+    region: "{{ region }}"
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    vpc_id: "{{ item.vpc_id | default(vpc_info.vpcs[0].vpc_id) }}"
+    rules: "{{ item.rules }}"
+  loop: "{{ securityGroupList }}"
+  register: created_sg
+  when: vpc_info is success and securityGroupList is defined
+  tags: create_security_groups, change_state_all_ec2_instances, 
+        change_state_all_instances, create_ec2_instances, 
+        create_rds_instances, create_aws_instances
+
+- name: Create/Delete EC2 key pairs -------
+  ec2_key:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    region: "{{ region }}"
+    name: "{{ item.name }}"
+    state: "{{ item.state | default(omit) }}"
+  loop: "{{ keyPairList }}"
+  when: keyPairList is defined
+  register: keypair_registered
+  tags: create_key_pairs, create_rds_instances,
+        create_ec2_instances, create_aws_instances
+
+- name: Copy EC2 Private Key --------------
+  copy:
+    content: "{{ item.key.private_key }}"
+    dest: "{{ confdir }}/{{ item.key.name }}.pem"
+    mode: "0600"
+  loop: "{{ keypair_registered.results }}"
+  when: keypair_registered is success and item.key.private_key is defined
+  tags: create_key_pairs, create_rds_instance, 
+        create_ec2_instances, create_instance
+
+#############################
+# EC2 instances ('wait' = 'yes' to its completion)
+- name: Create/Modify/Delete EC2 instances
+  ec2_instance:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    state: "{{ item.state | default(omit) }}"
+    wait: "{{ item.wait | default ('yes') }}"
+    region: "{{ region }}"
+    tags: "{{ item.tags | default(omit) }}"
+    image_id: "{{ item.image }}"
+    security_groups: "{{ item.SG_name }}"
+    instance_type: "{{ item.type | default(omit) }}"
+    key_name: "{{ item.key_name }}"
+    vpc_subnet_id: "{{ item.subnet_id | default(pick_subnet[0]) }}"
+    network: 
+       assign_public_ip: "{{ item.pub_ip | default(true) }}"
+    termination_protection: "{{ item.term_prot | default(omit) }}"
+  loop: "{{ ec2Instances }}"
+  when: ec2Instances is defined and default_subnets is success 
+  vars:
+    pick_subnet: "{{ default_subnets.subnets|map(attribute='id') | list | shuffle(seed=ansible_hostname) }}"
+  register: create_ec2_instances
+  tags: create_ec2_instances, create_aws_instances
+
+#############################
+# RDS instances ('wait' = 'yes' to its completion)
+- name: Create/Modify/Delete RDS instances
+  rds_instance:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    region: "{{ region }}"
+    state: "{{ item.state }}"
+    instance_type: "{{ item.type }}"
+    db_name: "{{ item.db_name }}"
+    db_instance_identifier: "{{ item.instance }}"
+    engine: "{{ item.engine }}"
+    allocated_storage: "{{ item.storage | default(omit) }}"
+    vpc_security_group_ids: "{{ created_sg | json_query(sg_id) }}"
+    publicly_accessible: "{{ item.publicly_accessible | default(omit) }}"
+    username: "{{ item.username }}"
+    password: "{{ item.password }}"
+    tags: "{{ item.tags }}"
+    wait: "{{ item.wait | default(true) }}"
+    skip_final_snapshot: "{{ item.skip_final_snapshot | default(omit) }}"
+    final_db_snapshot_identifier: "{{ item.final_db_snapshot_identifier | default(omit) }}"
+    backup_retention_period: "{{ item.backup_retention_period | default(omit) }}"
+    preferred_backup_window: "{{ item.preferred_backup_window | default(omit) }}"
+    enable_performance_insights: "{{ item.enable_performance_insights | default(omit) }}"
+    enable_cloudwatch_logs_exports: "{{ item.cloudwatch_logs_exports | default(omit) }}"
+    monitoring_interval: "{{ item.monitoring_interval | default(omit) }}"
+    monitoring_role_arn: "{{ item.monitoring_role_arn | default(omit) }}"
+  loop: "{{ rdsInstancesByName }}"
+  when: rdsInstancesByName is defined and created_sg is success
+  vars:
+     sg_id: "results[?group_name=='{{ item.sg_name }}'].group_id"
+  register: created_db_instance
+  tags: create_rds_instances, create_aws_instances
+
+#############################################
+# CloudFront configs (CFN) - still work to do
+- name: Gather CFN instances facts --------
+  cloudfront_info:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    all_lists: "yes"
+  register: cfn_info
+  tags: gather_cfn, change_state_all_instances, create_cfn_instances, create_aws_instances
+
+- name: Create CloudFront distribution ----
+  cloudfront_distribution:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    region: "{{ region }}"
+    state: "{{ item.state | default(omit) }}"
+    enabled: "{{ item.enabled | default(omit) }}"
+    origins: "{{ item.origins | default(omit) }}"
+    default_origin_domain_name: "{{ item.defOrigDomName | default(omit) }}"
+    alias: "{{ item.alias | default(omit) }}"
+    aliases: "{{ item.aliases | default(omit) }}"
+    caller_reference: "{{ item.caller_reference | default(omit) }}"
+    distribution_id: "{{ item.distribution_id | default(omit) }}"
+    tags: "{{ item.tags | default(omit) }}"
+    wait: "{{ item.wait | default(omit) }}"
+  loop: "{{ cloudfrontInstances }}"
+  # When variables are defined and facts returned no list
+  when: cloudfrontInstances is defined 
+  register: cloudfront_instance_created
+  tags: create_cfn_instances, create_aws_instances
+

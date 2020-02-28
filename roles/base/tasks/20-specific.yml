@@ -1,0 +1,25 @@
+---
+- name: Set some ini type files ---------------------------
+  ini_file:
+    path: "{{ item.path }}"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  loop: "{{ ini_file_list }}"
+  when: ini_file_list[0]
+  register: ini_file_updated
+  tags: config_files
+
+- name: Download and unarchive a .tgz, .rpm, etc packet ---
+  unarchive: 
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: "{{ item.remote_src | default('true') }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    mode: "{{ item.mode | default(omit) }}"
+    creates: "{{ item.creates }}"
+  loop: "{{ unarchive_list }}"
+  when: unarchive_list[0] and item.creates
+  register: unarchived_packs
+  tags: config_files

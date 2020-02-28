@@ -1,0 +1,13 @@
+
+---
+- hosts: local
+  connection: local
+  gather_facts: "{{ gather_y_n | default (false) }}"
+  become: false
+  vars_files:
+    - ../secret.yml
+    - vars_files/base_AWS.yml
+    - vars_files/AWS-mediawiki.yml
+  roles:
+    - common
+    - AWS

@@ -1,0 +1,50 @@
+---
+- name: Install remote python if not installed ------------
+  raw: "if [ ! -f {{ ansible_python['executable'] }} ] ; then apt install -y `basename {{ ansible_python['executable'] }}` ; fi "
+  when: ansible_python is defined 
+        and (ansible_distribution == "Debian" or ansible_distribution == "Ubuntu")
+  tags: bootstrap_python
+
+- name: Update cache and upgrade (may take a time) --------
+  apt: 
+    update_cache: "yes"
+    upgrade: "{{ update_cache_y_n | default(true) }}"
+  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+  register: updated_cache
+  tags: update_repository
+
+# Some dependencies modules should be done early - eg. PIP before PIP module
+- name: Preliminary dependency install -- python-pip ------
+  apt: 
+    pkg: "python-pip"
+    state: "present"
+  when: pip_install_list is defined and ansible_python_version is match("^2.*") 
+        and (ansible_distribution == "Debian" or ansible_distribution == "Ubuntu")
+  register: pip_installed
+  tags: bootstrap_python
+
+- name: Preliminary dependency install -- python3-pip -----
+  apt:
+    pkg: "python3-pip"
+    state: "present"
+  when: pip_install_list is defined and ansible_python_version is match("^3.*")
+        and (ansible_distribution == "Debian" or ansible_distribution == "Ubuntu")
+  register: pip3_installed
+  tags: bootstrap_python
+
+- name: Install local python dependencies via pip ---------
+  pip:
+    name: "{{ item }}"
+  loop: "{{ pip_install_list }}"
+  when: pip_install_list is defined and (pip_installed is success or pip3_installed is success)
+  tags: bootstrap_python
+
+- name: Install very basic packages to run ansible --------
+  apt:
+    pkg: "{{ item.pkg }}"
+    state: "present"
+  loop: "{{ base_dep_pkg_list }}"
+  when: base_dep_pkg_list is defined
+        and (ansible_distribution == "Debian" or ansible_distribution == "Ubuntu")
+  register: base_dep_pkg_installed
+  tags: install_base_pkg

@@ -1,0 +1,80 @@
+---
+- name: Install dependency packages -----------------------
+  apt: 
+    pkg: "{{ item.pkg }}" 
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ dep_pkg_list }}"
+  when: dep_pkg_list is defined and item.pkg is defined 
+  register: dep_pkg_installed
+  tags: install_dep_pkg
+
+- name: Ensure directories (when dir_file_tmpl_list.dir) --
+  file: 
+    dest: "{{ item.dest }}" 
+    state: "directory"
+    mode: "{{ item.mode | default(omit) }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+  loop: "{{ dir_file_tmpl_list }}"
+  when: dir_file_tmpl_list is defined and item.state is defined 
+        and item.state == "dir"
+  register: directories_in_place
+  tags: config_files, deploy_templates
+
+- name: Make proper links or remove (state link or absent) -
+  file:
+    src: "{{ item.src | default(omit) }}"
+    dest: "{{ item.dest }}"
+    state: "{{ item.state }}"
+    force: "{{ item.force | default(omit) }}"
+    follow: "{{ item.follow | default(omit) }}"
+  loop: "{{ dir_file_tmpl_list }}"
+  when: dir_file_tmpl_list is defined and item.state is defined and ( item.state == "link" or item.state == "absent")
+  register: linked_or_removed
+  tags: config_files, deploy_templates
+
+- name: Deploy templates dir_file_tmpl_list.types=tmpl ----
+  template:
+    src: "{{ item.tmpl }}"
+    dest: "{{ item.dest }}/{{ item.name }}"
+    mode: "{{ item.mode | default(omit) }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+  loop: "{{ dir_file_tmpl_list }}"
+  when: dir_file_tmpl_list is defined and directories_in_place is success and item.state is defined and item.state == "tmpl"
+  register: templates_in_place
+  tags: config_files, deploy_templates
+
+- name: Upload files as state=upload in dir_file_tmpl_list -
+  copy:
+    dest: "{{ item.dest }}"
+    src: "{{ item.src }}"
+    force: "{{ item.force | default(omit) }}"
+    mode: "{{ item.mode | default(omit) }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+  loop: "{{ dir_file_tmpl_list }}"
+  when: dir_file_tmpl_list is defined and directories_in_place is success and item.state is defined and item.state == "upload"
+  register: files_uploaded
+  tags: config_files, upload_files
+
+- name: Restart service after tmpl/file/link change -------
+  service:
+    name: "{{ item.item.srv }}"
+    state: "restarted"    
+    enabled: true
+  loop: "{{ templates_in_place.results | default([]) }} + {{ files_uploaded.results | default([]) }}"
+  when: (templates_in_place is changed or files_uploaded is changed) and item is changed and item.item.srv is defined
+  tags: config_files, deploy_templates, upload_files
+
+- name: Run shell if pointed out by tmpl of file tasks ----
+  shell: "{{ item.item.dest }}/{{ item.item.name }}"
+  args:
+    chdir: "{{ item.item.dest }}"
+    creates: "{{ item.item.creates }}"
+    warn: false
+  loop: "{{ templates_in_place.results | default([]) }} + {{ files_uploaded.results | default([]) }}"
+  when: (templates_in_place is changed or files_uploaded is changed) and item is changed and item.item.run_shell_after is defined and item.item.run_shell_after
+  register: shell_backup_done
+  tags: config_files, deploy_templates, upload_files
+

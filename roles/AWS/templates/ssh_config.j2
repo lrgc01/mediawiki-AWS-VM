@@ -1,0 +1,13 @@
+#jinja2:lstrip_blocks: True
+{% for instance in ec2_info.instances %}
+  {% if instance.tags.Name is defined and (instance.public_ip_address is defined or instance.public_dns_name is defined) %}
+Host {{ instance.tags.Name }} {{ instance.public_ip_address | default('') }} {{ instance.public_dns_name | default('') }}
+Compression yes
+ServerAliveInterval 30
+    {% if instance.key_name is defined %}
+IdentityFile conf.d/{{ instance.key_name }}.pem
+    {% endif %}
+StrictHostKeyChecking no
+
+  {% endif %}
+{% endfor %}

@@ -1,0 +1,151 @@
+---
+# General
+region             : "us-east-2"
+vpc_id             : ""
+basedir            : "."
+# local output dirs
+confdir            : "{{ basedir }}/conf.d"
+sshconf            : "{{ confdir }}/ssh_config"
+facts_out_dir      : "{{ basedir }}/facts.d"
+# AWS ini $HOME file configuration
+#
+awsHomeDir         : "~/.aws"
+awsIniPairs        :
+   - {
+       file : "{{ awsHomeDir }}/config" ,
+       section : "default" ,
+       option : "region" ,
+       value : "{{ region }}"
+     }
+# Directory creation list - there is a task ('file') to build the
+# basic output/config tree locally.
+out_dirs              : [ "{{ confdir }}", "{{ facts_out_dir }}" , "{{ awsHomeDir }}" ]
+
+application_name : "mediawiki"
+app_origin       : "ec2-3-135-206-81.us-east-2.compute.amazonaws.com"
+app_domain       : "lrgc01.uk.to"
+
+# And how to write some configs
+myTemplates           :
+   - {
+       src  : "host_inventory.j2",
+       dest : "{{ basedir }}/{{ application_name }}.inv"
+     }
+   - {
+       src  : "ssh_config.j2",
+       dest : "{{ sshconf }}"
+     }
+
+#
+# Security Groups
+SgName             : "general-sg"
+dbSgName           : "database-sg"
+# subnet, VPC, NAT, gateway - take a look at Amazon console for their defaults (added one more subnet) and choose.
+priv_subnet1       : "subnet-20f1615a"
+pub_subnet1        : "subnet-56e4bf3e"
+priv_subnet2       : "subnet-761fe73a"
+pub_subnet2        : "subnet-048f2b49b34873921"
+
+# EC2 stuffs - used onle as testing purposes
+srvInstanceType       : "t2.micro"
+testKey               : "ECS-Test-key"
+
+# DB configs
+db_type      : "mysql" 
+## These below are defined in ../secret.yml
+#db_user      : "wikiuser" 
+#db_pass      : "MW123456" 
+#db_name      : "{{ application_name }}" 
+dbInstanceName : "{{ db_name }}"  # Will generate the {{ dbInstanceName }}.rc file to be used later in VM playbook
+
+securityGroupList   :
+   - {
+       name        : "{{ SgName }}",
+       state       : "present" ,
+       description : "general SG",
+       rules       :  [
+                       { proto: "tcp",  
+                         ports: "22",  
+                         cidr_ip: "0.0.0.0/0" } ,
+                       { proto: "tcp",  
+                         ports: "80",  
+                         cidr_ip: "0.0.0.0/0" } ,
+                       { proto: "tcp",  
+                         ports: "443",
+                         cidr_ip: "0.0.0.0/0" } ,
+                      ] ,
+     }
+   - {
+       name        : "{{ dbSgName }}",
+       state       : "present" ,
+       description : "database SG",
+       rules       :  [
+                       { proto: "tcp",  
+                         ports: "5432",  
+                         cidr_ip: "172.16.0.0/12" , } ,
+                       { proto: "tcp",  
+                         ports: "3306",  
+                         cidr_ip: "172.16.0.0/12" , } ,
+                      ] ,
+     }
+
+keyPairList      : # To EC2
+   - {
+       name        : "{{ testKey }}" ,
+       state       : "present"
+     }
+
+ec2Instances     : # Used only as testing purposes
+   - {
+       state     : "present",
+       term_prot : false , # termination protection
+       wait      : true ,
+       tags      : { Name : "server1" , Group : "mediawiki" },
+       SG_name   : [ "default" , "{{ SgName }}" ],
+       type      : "{{ srvInstanceType }}",
+       image     : "ami-0fc20dd1da406780b", # Ubuntu 18.04 by Feb 2020
+       key_name  : "{{ testKey }}" ,
+       subnet_id : "{{ pub_subnet1 }}" ,
+     }
+rdsInstancesByName   :
+   - {
+       state     : "present" ,
+       wait      : "true" ,
+       publicly_accessible: false ,
+       tags      : { Environment: "testing",  Application: "{{ application_name }}" },
+       type      : "db.t2.micro",
+       db_name   : "{{ db_name }}",
+       instance  : "{{ dbInstanceName }}",
+       engine    : "{{ db_type }}",
+       storage   : "20",
+       sg_name   : "{{ dbSgName }}",
+       username  : "{{ db_user }}",
+       password  : "{{ db_pass }}" ,
+       skip_final_snapshot: true ,
+       #backup_retention_period: "1" ,
+       #preferred_backup_window: "01:40-02:30" ,
+       #enable_performance_insights: false ,
+       #cloudwatch_logs_exports: [ "mysql", ] ,
+     }
+     
+# CloudFront instances (CFN)
+cloudfrontInstances :
+   - { 
+       enabled         : true ,
+       state           : "present" ,
+       #defOrigDomName  : "{{ app_origin }}" ,
+       #distribution_id : "{{ app_origin }}",
+       origins         :
+         [
+            { 
+              id : "mediawiki_CF_id" , 
+              domain_name : "{{ app_origin }}" , 
+              custom_origin_config : { http_port : 80 , } , 
+            } ,
+         ] ,
+       caller_reference: "2020Feb{{ app_domain }}" ,
+       #origin_id       : "20190730{{ app_domain }}" ,
+       tags            : { Name: "CF for domain {{ app_domain }}" , Group: "webservers" , Project: "MediaWiki" } ,
+       wait            : false ,
+     }
+

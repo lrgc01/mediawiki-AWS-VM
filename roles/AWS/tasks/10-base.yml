@@ -1,0 +1,74 @@
+---
+- name: Ensure base output directories ---
+  file:
+    path: "{{ item }}"
+    state: "directory"
+    mode: "0755"
+  loop: "{{ out_dirs }}"
+  when: out_dirs is defined
+  register: output_dir_ready
+  tags: base_config, gather_default_vpc, create_security_groups,
+        create_ec2_instances, create_aws_instances, gather_elb
+
+- name: Set AWS config ini style file -----
+  ini_file:
+    path: "{{ item.file }}"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  loop: "{{ awsIniPairs }}"
+  when: awsIniPairs is defined
+  register: aws_ini_updated
+  tags: base_config
+
+- name: Gather default VPC facts ----------
+  ec2_vpc_net_info:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    filters:
+      isDefault: "true"
+  register: vpc_info
+  tags: gather_default_vpc, create_security_groups, 
+        create_ec2_instances, create_aws_instances
+
+- name: Copy default VPC facts ------------
+  copy:
+    content: "{{ item | to_nice_json }}"
+    dest: "{{ facts_out_dir }}/{{ item.vpc_id }}.json"
+  loop: "{{ vpc_info.vpcs }}"
+  when: vpc_info is success and output_dir_ready is success
+  tags: gather_default_vpc
+
+- name: Gather default subnets ------------
+  ec2_vpc_subnet_info:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    filters:
+      vpc-id: "{{ vpc_info.vpcs[0].vpc_id }}"
+  when: vpc_info is success
+  register: default_subnets
+  tags: gather_default_vpc, create_security_groups, 
+        create_ec2_instances, create_aws_instances
+
+- name: Copy default subnets facts --------
+  copy:
+    content: "{{ item | to_nice_json }}"
+    dest: "{{ facts_out_dir }}/{{ item.subnet_id }}.json"
+  loop: "{{ default_subnets.subnets }}"
+  when: default_subnets is success and output_dir_ready is success
+  tags: gather_default_vpc
+
+#- name: Show test
+#  debug:
+#    var:  my_string 
+#    #var: item.instance_id + " " + item.vpc_id
+#    #var: item.instances
+#    #var: ( item.vpcs | default(item.instances) )
+#    #var: item[0].vpc_id + " " + ( item[0].public_dns_name | default(omit) ) 
+#  #loop: "{{ ec2_info.results }} + [ {{ vpc_info }} ]"
+#  #loop: "{{ ec2_info | json_query('results[*].instances') }} + [ {{ vpc_info.vpcs }} ]"
+#  loop: "{{ ec2Instances }}"
+#  vars:
+#    my_string: "{{ item.tags.Name + '_' + item.type + '_' + item.image }}"
+#  tags: show_test
+

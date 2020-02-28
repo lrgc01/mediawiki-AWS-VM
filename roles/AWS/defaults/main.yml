@@ -1,0 +1,137 @@
+---
+# General
+region      : "eu-west-2"
+# If vpc_id is not defined the system will take the default
+#vpc_id      : "vpc-032db86b"
+vpc_id      : ""
+#
+# AWS ini $HOME file configuration
+#
+awsHomeDir  : "~/.aws"
+awsIniPairs           :
+   - { file : "{{ awsHomeDir }}/config" , section : "default" , option : "region" , value : "{{ region }}" }
+myTemplates :
+   - {
+       src  : "host_inventory.j2",
+       dest : "{{ basedir }}/hosts"
+     }
+   - {
+       src  : "ssh_config.j2",
+       dest : "{{ sshconf }}"
+     }
+   - {
+       src  : "cloudfront.rc.j2",
+       dest : "{{ confdir }}/cloudfront.rc"
+     }
+
+
+# For DB instances:
+# Its name seems to be the idempotent factor
+dbSgName                : "mysql"
+#rdsInstancesByName   :
+#   - {
+#       tags      : { Environment: "testing",  Application: "website" },
+#       type      : "db.t2.micro",
+#       name      : "instance1",
+#       engine    : "mariadb",
+#       size      : "20",
+#       sg_name   : "{{ dbSgName }}",
+#       username  : "adm",
+#       password  : "Admin321"
+#     }
+
+# For servers instances
+srv_instance_type  : "t2.micro"
+srv_sg_name        : "webserver-sg"
+win_sg_name        : "rdp"
+winkey             : "win-key"
+linuxkey           : "linux-key"
+# allEc2InstancesState should be undefined to change the state by tag 
+#allEc2InstancesState : "stopped"
+
+############################
+# ATTENTION to DELETION
+# Double check:
+# To delete an ec2|rds|key instance|pair, really_delete_* must be sent to 
+# yes/true (no quotes) besides ec2|rdsInstanceIdsToDelete 
+# (key_to_remove_by_name) defined.
+# DON'T FORGET TO DISABLE REMOVAL AFTER!!!
+reallyDeleteEc2         : false
+ec2InstanceIdsToDelete  : [ "i-0973eaefc23cf555c" ]
+reallyDeleteKeys        : false
+keysToRemoveByName      : [ "win-key", "compucorp-key" ]
+reallyDeleteRds         : false
+dbInstanceNameToDelete  : [ "mydbinstance" ]
+
+#securityGroupList:
+#   - { 
+#       name        : "{{ dbSgName }}",
+#       state       : "present",
+#       description : "Access to mysql port 3306",
+#       vpc_id      : "{{ vpc_id }}",
+#       rules       :  [ { proto: "tcp",  ports: "3306",  cidr_ip: "0.0.0.0/0" } ]
+#     }
+#   - {
+#       name        : "{{ win_sg_name }}",
+#       state       : "present",
+#       description : "Access to windows port 3389",
+#       vpc_id      : "{{ vpc_id }}",
+#       rules       :  [ { proto: "tcp",  ports: "3389",  cidr_ip: "0.0.0.0/0" } ]
+#     }
+
+#keyPairList :
+#   - { 
+#       name   : "{{ linuxkey }}"
+#     }
+#   - { 
+#       name   : "{{ winkey }}"
+#     }
+
+#
+# If you delete/terminate an instance and keep its name in the list below (unless 
+# with state absent), the instances|sg|keys will be recriated in next call 
+# to the playbook.
+# id: is the idempotent factor and in our task is built using the formula below:
+# "{{ region + '_' + item.tags.Name + '_' + item.type + '_' + item.image }}"
+# Where item is one element from the ec2Instances list defined here.
+# states available: running, stopped, rebooted
+#
+# image ID is mandatory. Look for it in EC2 console
+#ec2Instances    : 
+#   - { 
+#       tags      : { Name : "server1" }, 
+#       state     : "present",
+#       SG_name   : "{{ srv_sg_name }}", 
+#       type      : "{{ srv_instance_type }}",
+#       image     : "ami-6b3fd60c",
+#       key_name  : "{{ linuxkey }}"
+#     }
+#   - { 
+#       tags      : { Name : "win1" }, 
+#       state     : "absent",
+#       SG_name   : "{{ win_sg_name }}", 
+#       type      : "{{ srv_instance_type }}",
+#       image     : "ami-c8af5baf",
+#       key_name  : "{{ winkey }}"
+#     }
+
+# EFS instances
+#efsInstances   :
+#   - {
+#       state    : "present" ,
+#       name     : "website_efs" ,
+#       tags     : { Name: "website_efs" , Group: "webservers" }
+#     }
+
+# CloudFront instances (CFN)
+#cfn_domain1     : "example.uk"
+#cloudfrontInstances :
+#   - {
+#       enabled        : true ,
+#       state          : "absent" ,
+#       domainname     : "{{ cfn_domain1 }}" ,
+#       uniq_caller_ref: "my uniq domain {{ cfn_domain1 }}" ,
+#       distribution_id: "IDDOM1" ,
+#       origin_id      : "20190119{{ cfn_domain1 }}" ,
+#       tags           : { Name: "{{ cfn_domain1 }} CFN" , Group: "webservers" , Project: "Project 1" }
+#     }

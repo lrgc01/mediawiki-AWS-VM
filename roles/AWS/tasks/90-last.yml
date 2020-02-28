@@ -1,0 +1,101 @@
+---
+###################################################################
+# Gather information after any change, or when specified but --tags
+- name: Copy security groups facts --------
+  copy:
+    content: "{{ item | to_nice_json }}"
+    dest: "{{ facts_out_dir }}/{{ item.group_id }}-{{ item.group_name }}.json"
+  loop: "{{ created_sg.results }}"
+  when: created_sg is success and 'results' in created_sg and
+        item.group_id is defined and item.group_name is defined
+  tags: create_security_groups, change_state_all_ec2_instances, 
+        change_state_all_instances, create_ec2_instances, 
+        create_rds_instances, create_aws_instances
+
+- name: Gather EC2 instances facts --------
+  ec2_instance_info:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    #filters:
+      #"tag:Name": "{{ item.tags.Name }}"
+  #loop: "{{ ec2_instances }}"
+  register: ec2_info
+  tags: gather_ec2, change_state_all_ec2_instances, 
+        change_state_all_instances, create_ec2_instances, 
+        create_aws_instances
+
+- name: Gather RDS instances facts --------
+  rds_instance_info:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+  register: rds_info
+  tags: gather_rds, change_state_all_instances, 
+        create_rds_instances, create_aws_instances
+
+- name: Gather CFN instances facts --------
+  cloudfront_info:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    all_lists: "no"
+  register: cfn_info
+  tags: gather_cfn, change_state_all_instances, create_cfn_instances, create_aws_instances
+
+- name: Copy EC2 instances facts ----------
+  copy:
+    content: "{{ item | to_nice_json }}"
+    dest: "{{ facts_out_dir }}/{{ item.instance_id }}.json"
+  loop: "{{ ec2_info.instances }}"
+  when: ec2_info is success
+  tags: gather_ec2, change_state_all_ec2_instances, 
+        change_state_all_instances, create_ec2_instances, 
+        create_aws_instances
+
+- name: Copy RDS instances facts ----------
+  copy:
+    content: "{{ item | to_nice_json }}"
+    dest: "{{ facts_out_dir }}/{{ item.db_instance_identifier }}.json"
+  loop: "{{ rds_info.instances }}"
+  when: rds_info is success
+  tags: gather_rds, change_state_all_instances, 
+        create_rds_instances, create_aws_instances
+
+- name: Copy CFN filesystems facts --------
+  copy:
+    content: "{{ item | to_nice_json }}"
+    #content: "{{ cfn_info.cloudfront | to_nice_json }}"
+    dest: "{{ facts_out_dir }}/cfn-{{ item.Id }}.json"
+    #dest: "{{ facts_out_dir }}/cfn-all.json"
+  loop: "{{ cfn_info.cloudfront.summary.distributions }}"
+  when: cfn_info is success
+  tags: gather_cfn, change_state_all_instances, create_cfn_instances, create_aws_instances
+
+- name: Copy EC2 instances IP/DNS ---------
+  copy:
+    content: "EC2_NAME=\"{{ item.tags.Name }}\"\nEC2_IP=\"{{ item.public_ip_address }}\"\nEC2_FQDN=\"{{ item.public_dns_name }}\"\nEC2_KEY=\"{{ item.key_name }}.pem\"\n"
+    dest: "{{ confdir }}/{{ item.tags.Name }}.rc"
+  loop: "{{ ec2_info.instances }}"
+  when: ec2_info is success and 'Name' in item.tags 
+        and item.public_ip_address is defined 
+        and item.public_dns_name is defined 
+        and item.key_name is defined
+  tags: gather_ec2, change_state_all_ec2_instances, 
+        change_state_all_instances, create_ec2_instances, 
+        create_aws_instances
+
+- name: Copy RDS instances useful data ----
+  copy:
+    content: "_INSTANCE_ENDPOINT=\"{{ item.endpoint.address }}\"\n"
+    dest: "{{ facts_out_dir }}/{{ item.db_instance_identifier }}.rc"
+  loop: "{{ rds_info.instances }}"
+  when: rds_info is success and item.endpoint is defined
+  tags: gather_rds, change_state_all_instances, 
+        create_rds_instances, create_aws_instances
+
+- name: Deploy templates for inventory ----
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop: "{{ myTemplates }}"
+  when: ec2_info is success and myTemplates is defined
+  tags: config_files, config_ansible_host_file
+
