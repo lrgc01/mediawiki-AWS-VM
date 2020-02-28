@@ -67,11 +67,14 @@ and grant privilages on the database: here mediawiki instance name, user wikiuse
 
 ### Roles summary for AWS-mediawiki playbook
 
-#### common role
+  - common
+  - AWS
+
+#### the common role
 
 Responsible to adjust the environment, for example, by installing python or pip or python-openssl.
 
-#### AWS role
+#### the AWS role
 
 Main role. First create some local subdirectories to set aws auth configs and then other subdirs to save some transient configuration like SSH settings and database endpoint name.
 
@@ -79,11 +82,15 @@ The tasks of main interest are the EC2, RDS and CFN creation. CFN is done by a h
 
 ### Roles summary for mediawiki playbook
 
-#### common role
+  - common
+  - base
+  - DB\_adm
+
+#### the common role
 
 As in the former playbook. It is responsible to adjust the environment, for example, by installing python or pip or python-openssl.
 
-#### base role
+#### the base role
 
 Its tasks shall install all packages as requisite to deploy a simple linux server, like nginx web server, php and its extensions. 
 
@@ -95,7 +102,7 @@ The mediawiki source bundle is downloaded and unarchived (a tar ball) in the pro
 
 At its final duties this role check the previous defined packages, if having the 'srv' key in its dictionary, and make sure the corresponding service is started, like 'nginx' and 'php7.2-fpm'.
 
-#### DB_adm role
+#### the DB\_adm role
 
 Create databases and grant privileges in DBMS servers. Here a MySQL RDS instance. 
 
