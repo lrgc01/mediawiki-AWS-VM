@@ -1,0 +1,20 @@
+---
+- name: CloudFront distribution to EC2
+  cloudfront_distribution:
+    aws_access_key: "{{ aws_access_key | default(omit) }}"
+    aws_secret_key: "{{ aws_secret_key | default(omit) }}"
+    region: "{{ region }}"
+    state: present
+    enabled: "{{ item.enabled | default(true) }}"
+    origins: "{{ item.origins | default(omit) }}"
+    default_origin_domain_name: "{{ item.public_dns_name | default(omit) }}"
+    alias: "{{ item.alias | default(omit) }}"
+    aliases: "{{ item.aliases | default(omit) }}"
+    caller_reference: "{{ item.caller_reference | default(omit) }}"
+    distribution_id: "{{ item.distribution_id | default(omit) }}"
+    tags: "{{ item.tags | default(omit) }}"
+    wait: "{{ item.wait | default(omit) }}"
+  loop: "{{ create_ec2_instances.results[0].instances }}" 
+  when: create_ec2_instances.results is defined
+  register: cloudfront_instance_created
+  tags: create_ec2_instances, create_aws_instances

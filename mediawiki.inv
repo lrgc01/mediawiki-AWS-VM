@@ -1,5 +1,5 @@
 [mediawiki]
-ec2-3-135-206-81.us-east-2.compute.amazonaws.com
+ec2-13-59-68-214.us-east-2.compute.amazonaws.com
 
 [mediawiki:vars]
 ansible_python_interpreter=/usr/bin/python3

@@ -91,10 +91,10 @@ keyPairList      : # To EC2
 
 ec2Instances     : # Used only as testing purposes
    - {
-       state     : "absent",
+       state     : "present",
        term_prot : false , # termination protection
        wait      : true ,
-       tags      : { Name : "server1" , Group : "mediawiki" },
+       tags      : { Name : "server1" , Group : "mediawiki", Turn : "6" },
        SG_name   : [ "default" , "{{ SgName }}" ],
        type      : "{{ srvInstanceType }}",
        image     : "ami-0fc20dd1da406780b", # Ubuntu 18.04 by Feb 2020
@@ -103,7 +103,7 @@ ec2Instances     : # Used only as testing purposes
      }
 rdsInstancesByName   :
    - {
-       state     : "absent" ,
+       state     : "present" ,
        wait      : "true" ,
        publicly_accessible: false ,
        tags      : { Environment: "testing",  Application: "{{ application_name }}" },
@@ -119,23 +119,23 @@ rdsInstancesByName   :
      }
      
 # CloudFront instances (CFN)
-cloudfrontInstances :
-   - { 
-       enabled         : true ,
-       state           : "absent" ,
-       #defOrigDomName  : "{{ app_origin }}" ,
-       #distribution_id : "{{ app_origin }}",
-       origins         :
-         [
-            { 
-              id : "mediawiki_CF_id" , 
-              domain_name : "{{ app_origin }}" , 
-              custom_origin_config : { http_port : 80 , } , 
-            } ,
-         ] ,
-       caller_reference: "2020Feb{{ app_domain }}" ,
-       #origin_id       : "20190730{{ app_domain }}" ,
-       tags            : { Name: "CF for domain {{ app_domain }}" , Group: "webservers" , Project: "MediaWiki" } ,
-       wait            : false ,
-     }
+#cloudfrontInstances :
+#   - { 
+#       enabled         : true ,
+#       state           : "absent" ,
+#       #defOrigDomName  : "{{ app_origin }}" ,
+#       #distribution_id : "{{ app_origin }}",
+#       origins         :
+#         [
+#            { 
+#              id : "mediawiki_CF_id" , 
+#              domain_name : "{{ app_origin }}" , 
+#              custom_origin_config : { http_port : 80 , } , 
+#            } ,
+#         ] ,
+#       caller_reference: "2020Feb{{ app_domain }}" ,
+#       #origin_id       : "20190730{{ app_domain }}" ,
+#       tags            : { Name: "CF for domain {{ app_domain }}" , Group: "webservers" , Project: "MediaWiki" } ,
+#       wait            : false ,
+#     }
 

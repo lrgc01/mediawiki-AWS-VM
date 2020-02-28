@@ -64,6 +64,7 @@
   vars:
     pick_subnet: "{{ default_subnets.subnets|map(attribute='id') | list | shuffle(seed=ansible_hostname) }}"
   register: create_ec2_instances
+  notify: CloudFront distribution to EC2
   tags: create_ec2_instances, create_aws_instances
 
 #############################
