@@ -12,7 +12,33 @@ The RDS instance is named mediawiki or mediawiki.ctxnidj2utoz.us-east-2.rds.amaz
 
 The CFN distribution is using the CFN address [http://d3n7n18gbk9ktd.cloudfront.net](http://d3n7n18gbk9ktd.cloudfront.net) which is supposed to redirect the connection to the origin URL http://ec2-13-59-68-214.us-east-2.compute.amazonaws.com.
 
-## Overview of ansible playbook organization
+## Playbooks
+
+There are two playbooks in the same directory hierarchy. They run by running one script for each that check some environment, change if necessary, and run the ansible-playbook.i
+
+The next two sections show an overview of each playbook.
+
+### The AWS cloud playbook
+
+Main tasks:
+  - Create (or modify or delete) EC2 instance: here = ubuntu 18.04
+  - Create (or modify or delete) RDS instance: name = mediawiki
+  - Create the Cloudfront distribution **after** the deploy of the EC2, since we are using the origin as the amazon computer hostname (ec2-...compute.amazonaws.com)
+  - Save locally some facts to be used later by the deployment of the application on the linux VM, like the hostname/IP, the database endpoint, the ssh key pair, etc.
+    - conf.d/ssh_config    (IdentityFile, StrictHostKeyChecking, etc)
+    - facts.d/mediawiki.rc (database endpoint)
+
+### The mediawiki playbook
+
+It uses some data recorded by the previos playbook. Check in these directories/files:
+  - conf.d/ssh_config
+  - facts.d/mediawiki.rc (the database instance name)
+
+Main tasks:
+  - Install base software: 
+and grant privilages on the database: here mediawiki instance name, user wikiuser
+
+## Overview of ansible playbook directory organization
 
   - Directories:
     - . (the root): 
@@ -42,28 +68,9 @@ The CFN distribution is using the CFN address [http://d3n7n18gbk9ktd.cloudfront.
       - facts.d is a missing directory in this repo that record data from the running system for later use
       - conf.d and facts.d shall be created by the shell script when running the AWS playbook
 
-## The AWS cloud playbook
+## The playbook roles summary
 
-Main tasks:
-  - Create (or modify or delete) EC2 instance: here = ubuntu 18.04
-  - Create (or modify or delete) RDS instance: name = mediawiki
-  - Create the Cloudfront distribution **after** the deploy of the EC2, since we are using the origin as the amazon computer hostname (ec2-...compute.amazonaws.com)
-  - Save locally some facts to be used later by the deployment of the application on the linux VM, like the hostname/IP, the database endpoint, the ssh key pair, etc.
-    - conf.d/ssh_config    (IdentityFile, StrictHostKeyChecking, etc)
-    - facts.d/mediawiki.rc (database endpoint)
-
-## The mediawiki playbook
-
-It uses some data recorded by the previos playbook. Check in these directories/files:
-  - conf.d/ssh_config
-  - facts.d/mediawiki.rc (the database instance name)
-
-Main tasks:
-  - Install base software: 
-and grant privilages on the database: here mediawiki instance name, user wikiuser
-
-
-## Playbooks
+First a summary of each role. Then their tasks listed with '--list-tasks'.
 
 ### Roles summary for AWS-mediawiki playbook
 
