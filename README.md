@@ -1,4 +1,4 @@
-# Deploy of a mediawiki server on a VM in a cloud provider
+# Deployment of a mediawiki server on a VM in a cloud provider
 
 The goal of this exercise is to deploy a linux VM (ubuntu) in a cloud (here AWS) and then deploy the mediawiki server on it using a well known web server (nginx).
 
