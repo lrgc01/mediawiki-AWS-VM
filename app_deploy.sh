@@ -2,20 +2,23 @@
 
 PROGNAME=`basename $0 .sh`
 
-# Check base packages to continue
-which sudo > /dev/null 2>&1
-[ "$?" != 0 ] && ( echo "You must install sudo to run this script"; exit 1 )
-
 # Check release (get ID from here)
 [ -f /etc/os-release ] && . /etc/os-release
 
+PIP="pip3"
+PY_PIP="python3-pip"
+
 which ansible > /dev/null 2>&1
 if [ "$?" != 0 ]; then
-  which pip > /dev/null 2>&1
+  # Check base packages to continue
+  which sudo > /dev/null 2>&1
+  [ "$?" != 0 ] && ( echo "You must install it or have sudo rights to let this script install it"; exit 1 )
+
+  which $PIP > /dev/null 2>&1
   if [ "$?" != 0 ]; then
      case "$ID" in
        'debian'|'ubuntu')
-          sudo apt-get install -y python-pip
+          sudo apt-get install -y $PY_PIP
        ;;
        *)
          echo "Sorry, only Debian or Ubuntu by now."
@@ -26,7 +29,7 @@ if [ "$?" != 0 ]; then
 
   case "$ID" in
     'debian'|'ubuntu'|'Centos')
-       sudo pip install ansible
+       sudo $PIP install ansible
     ;;
     *)
       echo "Sorry, this script only installs the ansible package on Debian, Ubuntu or Centos with pip pre installed."
@@ -34,7 +37,6 @@ if [ "$?" != 0 ]; then
     ;;
   esac
 fi
-
 
 PLAYDIR="`dirname $0`"
 

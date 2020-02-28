@@ -13,16 +13,15 @@ while [ "$#" -gt 0 ]; do
    shift
 done
 
-
-# Check base packages to continue
-which sudo > /dev/null 2>&1
-[ "$?" != 0 ] && ( echo "You must install sudo to run this script"; exit 1 )
-
 # Check release
 [ -f /etc/os-release ] && . /etc/os-release
 
 which ansible > /dev/null 2>&1
 if [ "$?" != 0 ]; then
+  # Check if can install requisite packages
+  which sudo > /dev/null 2>&1
+  [ "$?" != 0 ] && ( echo "No ansible. You must install it or have sudo rights to let this script install it"; exit 1 )
+
   case "$ID" in
     'debian')
        grep "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main" /etc/apt/sources.list > /dev/null 2>&1 
@@ -109,7 +108,6 @@ fi
 
 # First, run with full playbook running - no skip => SKIP_TAGS="--tags bootstrap_python" sh aws.sh
 # After first install, the tag "bootstrap_python" can be safely skipped:
-#SKIP_TAGS="--skip-tags bootstrap_python"
 [ -z "$SKIP_TAGS" ] && SKIP_TAGS="--skip-tags bootstrap_python"
 
 [ -z "$GATHER_FACTS" ] && GATHER_FACTS="false"
