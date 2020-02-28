@@ -1,13 +1,5 @@
 ---
 #
-# Python role block variable definition
-#
-# boto* is for AWS so use in localhost only
-#pip_install_list        : [ "botocore" , "boto" , "boto3" ]
-
-#--- End of python role block
-
-#
 # General var definition block - to all roles
 #
 # Our web server definitions

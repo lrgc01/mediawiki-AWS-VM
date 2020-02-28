@@ -52,11 +52,8 @@ testKey               : "ECS-Test-key"
 
 # DB configs
 db_type      : "mysql" 
-## These below are defined in ../secret.yml
-#db_user      : "wikiuser" 
-#db_pass      : "MW123456" 
-#db_name      : "{{ application_name }}" 
 dbInstanceName : "{{ db_name }}"  # Will generate the {{ dbInstanceName }}.rc file to be used later in VM playbook
+## All other db_* stuff are defined in ../secret.yml
 
 securityGroupList   :
    - {
@@ -80,9 +77,6 @@ securityGroupList   :
        state       : "present" ,
        description : "database SG",
        rules       :  [
-                       { proto: "tcp",  
-                         ports: "5432",  
-                         cidr_ip: "172.16.0.0/12" , } ,
                        { proto: "tcp",  
                          ports: "3306",  
                          cidr_ip: "172.16.0.0/12" , } ,
@@ -122,10 +116,6 @@ rdsInstancesByName   :
        username  : "{{ db_user }}",
        password  : "{{ db_pass }}" ,
        skip_final_snapshot: true ,
-       #backup_retention_period: "1" ,
-       #preferred_backup_window: "01:40-02:30" ,
-       #enable_performance_insights: false ,
-       #cloudwatch_logs_exports: [ "mysql", ] ,
      }
      
 # CloudFront instances (CFN)
