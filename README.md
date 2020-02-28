@@ -6,11 +6,11 @@ The goal of this exercise is to deploy a linux VM (ubuntu) in a cloud (here AWS)
 
 The systems was deployed in a AWS cloud with 1 EC2 instance, 1 RDS instance and 1 CFN distribution. All VPC and subnets are the default to an ordinary AWS account.
 
-Mediawiki is running on the URL: [http://ec2-3-135-206-81.us-east-2.compute.amazonaws.com](http://ec2-3-135-206-81.us-east-2.compute.amazonaws.com). This AWS address is the same as the Linux VM which can be accessed using the proper key pair via SSH and user ubuntu.
+Mediawiki is running on the URL: [http://ec2-13-59-68-214.us-east-2.compute.amazonaws.com/](http://ec2-13-59-68-214.us-east-2.compute.amazonaws.com/). This AWS address is the same as the Linux VM which can be accessed using the proper key pair via SSH and user ubuntu.
 
 The RDS instance is named mediawiki or mediawiki.ctxnidj2utoz.us-east-2.rds.amazonaws.com which is not accessible from the internet, but only in the private cloud.
 
-The CFN distribution is using the CFN address [http://d2of842ib2kbwh.cloudfront.net](http://d2of842ib2kbwh.cloudfront.net) which is supposed to redirect the connection to the origin URL ec2-3-135-206-81.us-east-2.compute.amazonaws.com.
+The CFN distribution is using the CFN address [http://d3n7n18gbk9ktd.cloudfront.net](http://d3n7n18gbk9ktd.cloudfront.net) which is supposed to redirect the connection to the origin URL http://ec2-13-59-68-214.us-east-2.compute.amazonaws.com.
 
 ## Overview of ansible playbook organization
 
