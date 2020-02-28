@@ -91,7 +91,7 @@ keyPairList      : # To EC2
 
 ec2Instances     : # Used only as testing purposes
    - {
-       state     : "present",
+       state     : "absent",
        term_prot : false , # termination protection
        wait      : true ,
        tags      : { Name : "server1" , Group : "mediawiki" },
@@ -103,7 +103,7 @@ ec2Instances     : # Used only as testing purposes
      }
 rdsInstancesByName   :
    - {
-       state     : "present" ,
+       state     : "absent" ,
        wait      : "true" ,
        publicly_accessible: false ,
        tags      : { Environment: "testing",  Application: "{{ application_name }}" },
@@ -122,7 +122,7 @@ rdsInstancesByName   :
 cloudfrontInstances :
    - { 
        enabled         : true ,
-       state           : "present" ,
+       state           : "absent" ,
        #defOrigDomName  : "{{ app_origin }}" ,
        #distribution_id : "{{ app_origin }}",
        origins         :
